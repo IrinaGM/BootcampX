@@ -3,7 +3,6 @@ const { Pool } = require("pg");
 
 const args = process.argv; // Retrieves arguments the user provided
 const cohort = args[2] ? args[2] : null; // get the cohort name
-const limit = args[3] ? args[3] : 5; // get the limit for the query, default 5 if not provided
 
 // define connection to db
 const pool = new Pool({
@@ -17,16 +16,18 @@ const pool = new Pool({
 pool
   .query(
     `
-    SELECT students.id as id, students.name as name, cohorts.name as cohort
-    FROM students
+    SELECT DISTINCT teachers.name as teacher, cohorts.name as cohort
+    FROM teachers
+    JOIN assistance_requests ON teachers.id = assistance_requests.teacher_id
+    JOIN students ON assistance_requests.student_id = students.id
     JOIN cohorts ON students.cohort_id = cohorts.id
-    WHERE cohorts.name LIKE '%${cohort}%'
-    LIMIT ${limit};
+    WHERE cohorts.name = '${cohort}'
+    ORDER BY teachers.name;
     `
   )
   .then((res) => {
-    res.rows.forEach((user) => {
-      console.log(`${user.name} has an id of ${user.id} and was in the ${user.cohort} cohort`);
+    res.rows.forEach((data) => {
+      console.log(`${data.cohort}: ${data.teacher}`);
     });
   })
   .catch((err) => console.error("query error", err.stack));
